@@ -146,6 +146,21 @@
          (filter (lambda (x) (not (empty? x))) check-contents))))
 
 
+(define (ls-R dir)
+  ; Dir -> [ListOf [ListOf String]]
+  ; lists the paths to every file in the given directory's tree
+  (local (
+          (define herein-files
+            (map (lambda (f) (list (dir-name dir) f))
+                 (map file-name (dir-files dir))))
+          (define herein-subdirs
+            (map (lambda (p) (cons (dir-name dir) p))
+                 (foldr append '()
+                        (map (lambda (d) (ls-R d)) (dir-dirs dir))))))
+    ; - IN -
+    (append herein-files herein-subdirs)))
+
+
 ; ======================
 ; checks
 
@@ -166,3 +181,15 @@
 (check-expect (find-all "hang" TS) '(("TS" "Libs" "Code" "hang")))
 (check-expect (find-all "ready" TS) '())
 (check-expect (find-all "read!" TS) '(("TS" "read!") ("TS" "Libs" "Docs" "read!")))
+(check-expect (ls-R Libs)
+              '(("Libs" "Code" "hang") ("Libs" "Code" "draw")
+                                       ("Libs" "Docs" "read!")))
+
+
+; ==========================
+; action!
+
+
+
+(define X (create-dir "/Users/robert/Documents"))
+(find-all "HW1.jl" X)
