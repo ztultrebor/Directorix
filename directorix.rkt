@@ -130,22 +130,6 @@
       [else (cons (dir-name dir) check-files)]))) ; success in a); return result
 
 
-(define (find-all nm dir)
-  ; String Dir -> [Maybe [ListOf [ListOf String]]]
-  ; returns the path to a file, if the file exists
-  (local (
-          (define check-files
-            (filter (lambda (f) (string=? nm f))
-                    (map file-name (dir-files dir))))
-          (define check-subdirs
-            (foldr append '()
-                   (map (lambda (d) (find-all nm d)) (dir-dirs dir))))
-          (define check-contents (cons check-files check-subdirs)))
-    ; - IN -
-    (map (lambda (l) (cons (dir-name dir) l))
-         (filter (lambda (x) (not (empty? x))) check-contents))))
-
-
 (define (ls-R dir)
   ; Dir -> [ListOf [ListOf String]]
   ; lists the paths to every file and directory in the given directory's tree
@@ -159,6 +143,23 @@
                         (map (lambda (d) (ls-R d)) (dir-dirs dir))))))
     ; - IN -
     (append (list (list (dir-name dir))) herein-files herein-subdirs)))
+
+
+(define (find-all nm dir)
+  ; String Dir -> [Maybe [ListOf [ListOf String]]]
+  ; returns the path to a file, if the file exists
+  (local (
+          (define (last? path)
+            ; [ListOf String] -> Boolean
+            ; extract the final element of path
+            (match path
+              [(cons x (? empty?)) (string=? nm x)]
+              [(cons x y) (last? y)]))
+          (define results (filter last? (ls-R dir))))
+    ; - IN -
+    (match results
+      [(? empty?) #f]
+      [x x])))
 
 
 ; ======================
@@ -179,20 +180,17 @@
 (check-expect (find "ready" TS) #f)
 (check-expect (find "read!" TS) '("TS" "read!"))
 (check-expect (find-all "hang" TS) '(("TS" "Libs" "Code" "hang")))
-(check-expect (find-all "ready" TS) '())
+(check-expect (find-all "ready" TS) #f)
 (check-expect (find-all "read!" TS) '(("TS" "read!") ("TS" "Libs" "Docs" "read!")))
 (check-expect (ls-R Libs)
               '(("Libs") ("Libs" "Code")
                          ("Libs" "Code" "hang") ("Libs" "Code" "draw")
                          ("Libs" "Docs") ("Libs" "Docs" "read!")))
 
-(ls-R TS)
+
+
 ; ==========================
 ; action!
 
-
-
 (define X (create-dir "/Users/robert/Documents"))
 (find-all "HW1.jl" X)
-
-(ls-R X)
